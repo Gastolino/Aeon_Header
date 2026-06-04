@@ -95,9 +95,12 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 30px 80px;
+  padding: 22px 80px;
   opacity: 0;
   animation: fadeIn 0.6s 0.1s ease forwards;
+  background: rgba(253,249,234,0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .nav-logo { color: var(--orange); display: flex; align-items: center; text-decoration: none; }
@@ -108,7 +111,7 @@ html, body {
   list-style: none;
 }
 .nav-links a {
-  color: var(--dark-cream);
+  color: var(--warm-black);
   text-decoration: none;
   font-family: 'DM Mono', monospace;
   font-size: 13px;
@@ -116,17 +119,17 @@ html, body {
   letter-spacing: 0.005em;
   transition: color 0.2s;
 }
-.nav-links a:hover { color: var(--cream); }
+.nav-links a:hover { color: var(--orange); }
 
 .nav-actions { display: flex; align-items: center; gap: 12px; }
 
 .btn-lang {
   display: flex; align-items: center; gap: 6px;
   padding: 7px 14px;
-  border: 1px solid rgba(200,188,154,0.55);
+  border: 1px solid rgba(34,29,20,0.22);
   border-radius: 100px;
   background: transparent;
-  color: var(--dark-cream);
+  color: var(--warm-black);
   font-family: 'DM Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -196,38 +199,22 @@ html, body {
   font-weight: 300;
   line-height: 1.05;
   letter-spacing: -0.02em;
-  color: var(--cream);
+  color: var(--warm-black);
 }
 
-/* Subtle breadcrumb below headline */
-.scan-prompt {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'DM Mono', monospace;
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(253,249,234,0.35);
-}
-.scan-prompt::before {
-  content: '';
-  display: block;
-  width: 20px;
-  height: 1px;
-  background: rgba(253,249,234,0.35);
-}
+.scan-prompt { display: none; }
 
 .hero-desc {
-  margin-top: 44px;
   max-width: 360px;
   font-family: 'DM Mono', monospace;
   font-size: 12.5px;
   font-weight: 300;
   line-height: 1.8;
-  color: rgba(253,249,234,0.6);
+  color: var(--warm-black);
+  opacity: 0;
+  transition: opacity 0.65s ease;
 }
+.hero-desc.visible { opacity: 1; }
 
 .hero-actions {
   margin-top: 34px;
@@ -396,23 +383,7 @@ html, body {
   color: rgba(232,150,42,0.4);
 }
 
-/* ── PULSE HINT ── */
-.pulse-hint {
-  position: absolute;
-  z-index: 15;
-  bottom: 112px;
-  left: 80px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'DM Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(253,249,234,0.3);
-  opacity: 0;
-  animation: fadeIn 0.6s 0.8s ease forwards;
-}
+.pulse-hint { display: none; }
 .pulse-dot {
   width: 5px; height: 5px;
   border-radius: 50%;
@@ -493,8 +464,7 @@ html, body {
   <!-- LAYER 4: Hero content -->
   <div class="hero-content" id="heroContent">
     <span class="headline-line1" id="line1">Book a checkup</span>
-    <p class="scan-prompt">Move cursor to scan</p>
-    <p class="hero-desc">Cutting-edge MRI technology and detailed blood analyses capture over 1,000,000 data points across all vital organs — enabling early detection of risks and targeted action.</p>
+    <p class="hero-desc" id="heroDesc">Cutting-edge MRI technology and detailed blood analyses capture over 1,000,000 data points across all vital organs — enabling early detection of risks and targeted action.</p>
     <div class="hero-actions">
       <a href="#" class="cta-btn">Book a Scan</a>
       <div class="google-row">
@@ -568,61 +538,36 @@ const coords     = document.getElementById('curCoords');
 const imgBrain   = document.getElementById('zoneBrain');
 const imgSpine   = document.getElementById('zoneSpine');
 const imgBody    = document.getElementById('zoneBody');
+const heroDescEl = document.getElementById('heroDesc');
+const nav        = document.querySelector('.nav');
 
 let mouseX = 0, mouseY = 0;
 let smoothX = -9999, smoothY = -9999;
-let inside = false;
+let inside = false, isOverNav = false, descRevealed = false;
 
-// Cursor half-size — lerped smoothly so clip-path stays in sync with visual
-let halfW = 100, halfH = 100;
-let targetHalfW = 100, targetHalfH = 100;
-
-// Zone image visibility state — only toggle class when it actually changes
+let halfW = 100, halfH = 100, targetHalfW = 100, targetHalfH = 100;
 let prevInBrain = false, prevInSpine = false, prevInBody = false;
 
-// Zone definitions (areas.svg viewBox: 5504 × 3072)
 const SVG_W   = 5504, SVG_H = 3072;
 const BRAIN_Z = { x: 3372.96, y: 634.89,  w: 931.33,  h: 931.33  };
 const SPINE_Z = { x: 3571.24, y: 1646.33, w: 799.14,  h: 1393.99 };
 const BODY_Z  = { x: 2997.13, y: 377.21,  w: 1690.10, h: 2694.79 };
 
-// Convert SVG coords → screen coords (object-fit:cover / object-position:right center)
 function getImgTransform() {
-  const r     = hero.getBoundingClientRect();
-  const scale = Math.max(r.width / SVG_W, r.height / SVG_H);
+  const r = hero.getBoundingClientRect(), scale = Math.max(r.width / SVG_W, r.height / SVG_H);
   return { scale, ox: r.width - SVG_W * scale, oy: (r.height - SVG_H * scale) / 2 };
 }
-
 function zoneScreen(z, t) {
-  const x1 = t.ox + z.x * t.scale,           y1 = t.oy + z.y * t.scale;
-  const x2 = t.ox + (z.x + z.w) * t.scale,   y2 = t.oy + (z.y + z.h) * t.scale;
+  const x1 = t.ox + z.x * t.scale, y1 = t.oy + z.y * t.scale;
+  const x2 = t.ox + (z.x + z.w) * t.scale, y2 = t.oy + (z.y + z.h) * t.scale;
   return { x1, y1, x2, y2, cx: (x1 + x2) / 2, cy: (y1 + y2) / 2 };
 }
-
-function inZone(px, py, z) {
-  return px >= z.x1 && px <= z.x2 && py >= z.y1 && py <= z.y2;
-}
+function inZone(px, py, z) { return px >= z.x1 && px <= z.x2 && py >= z.y1 && py <= z.y2; }
 
 function updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods) {
-  // Update positions every tick so they stay correct on resize
-  if (inBrain) {
-    imgBrain.style.left      = (bs.x2 + 20) + 'px';
-    imgBrain.style.top       = bs.cy + 'px';
-    imgBrain.style.transform = 'translateY(-50%)';
-  }
-  if (inSpine) {
-    imgSpine.style.left      = (ss.x2 + 20) + 'px';
-    imgSpine.style.top       = ss.cy + 'px';
-    imgSpine.style.transform = 'translateY(-50%)';
-  }
-  if (inBody) {
-    // Bloodmarker sits to the LEFT of the body zone
-    imgBody.style.left      = (bods.x1 - 20) + 'px';
-    imgBody.style.top       = bods.cy + 'px';
-    imgBody.style.transform = 'translate(-100%, -50%)';
-  }
-
-  // Only add/remove class when state changes to avoid restarting CSS transitions
+  if (inBrain) { imgBrain.style.cssText += `left:${bs.x2 + 20}px;top:${bs.cy}px;transform:translateY(-50%)`; }
+  if (inSpine) { imgSpine.style.cssText += `left:${ss.x2 + 20}px;top:${ss.cy}px;transform:translateY(-50%)`; }
+  if (inBody)  { imgBody.style.cssText  += `left:${bods.x1 - 20}px;top:${bods.cy}px;transform:translate(-100%,-50%)`; }
   if (inBrain !== prevInBrain) { imgBrain.classList.toggle('visible', inBrain); prevInBrain = inBrain; }
   if (inSpine !== prevInSpine) { imgSpine.classList.toggle('visible', inSpine); prevInSpine = inSpine; }
   if (inBody  !== prevInBody)  { imgBody.classList.toggle('visible',  inBody);  prevInBody  = inBody;  }
@@ -632,20 +577,25 @@ fgLayer.style.clipPath = 'url(#heroClip)';
 
 function alignRevealText() {
   const l = line1El.getBoundingClientRect(), h = hero.getBoundingClientRect();
-  revealLine.style.top       = (l.top - h.top + l.height * 1.05) + 'px';
+  const revealTop = l.top - h.top + l.height * 1.05;
+  revealLine.style.top = revealTop + 'px';
   revealLine.style.transform = 'none';
+  // Margin-top on hero-desc: places it below the reveal line
+  const rlH = revealLine.getBoundingClientRect().height || l.height;
+  heroDescEl.style.marginTop = (rlH + l.height * 0.05 + 32) + 'px';
 }
 window.addEventListener('load',   alignRevealText);
 window.addEventListener('resize', alignRevealText);
 
+// Cursor shrinks to nothing over the nav
+nav.addEventListener('mouseenter', () => { isOverNav = true;  });
+nav.addEventListener('mouseleave', () => { isOverNav = false; });
+
 document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-
 hero.addEventListener('mouseenter', () => { inside = true;  cursor.style.opacity = '1'; });
-
 hero.addEventListener('mouseleave', () => {
-  inside = false;
+  inside = false; isOverNav = false;
   cursor.style.opacity = '0';
-  // Snap cursor back to default size instantly on leave
   halfW = halfH = targetHalfW = targetHalfH = 100;
   cursor.style.width = '200px'; cursor.style.height = '200px';
   prevInBrain = prevInSpine = prevInBody = false;
@@ -656,61 +606,64 @@ hero.addEventListener('mouseleave', () => {
 });
 
 function tick() {
-  const t    = getImgTransform();
-  const bs   = zoneScreen(BRAIN_Z, t);
-  const ss   = zoneScreen(SPINE_Z, t);
-  const bods = zoneScreen(BODY_Z,  t);
+  const t = getImgTransform();
+  const bs = zoneScreen(BRAIN_Z, t), ss = zoneScreen(SPINE_Z, t), bods = zoneScreen(BODY_Z, t);
 
-  let targetX = mouseX, targetY = mouseY;
-  let posLp = 0.10;   // default: smooth free-follow
+  let targetX = mouseX, targetY = mouseY, posLp = 0.10;
 
   if (inside) {
-    const inBrain = inZone(mouseX, mouseY, bs);
-    const inSpine = inZone(mouseX, mouseY, ss);
-    const inBody  = inZone(mouseX, mouseY, bods);
-
-    if (inBrain) {
-      targetX = bs.cx; targetY = bs.cy;
-      posLp   = 0.055;  // gentle pull — no whiplash
-      targetHalfW = (bs.x2 - bs.x1) / 2;
-      targetHalfH = (bs.y2 - bs.y1) / 2;
-    } else if (inSpine) {
-      targetX = ss.cx; targetY = ss.cy;
-      posLp   = 0.055;
-      targetHalfW = (ss.x2 - ss.x1) / 2;
-      targetHalfH = (ss.y2 - ss.y1) / 2;
+    if (isOverNav) {
+      // Close the cursor in on itself — size lerps to 0
+      targetHalfW = targetHalfH = 0;
+      updateZoneImages(false, false, false, bs, ss, bods);
     } else {
-      targetHalfW = targetHalfH = 100;
-    }
+      const inBrain = inZone(mouseX, mouseY, bs);
+      const inSpine = inZone(mouseX, mouseY, ss);
+      const inBody  = inZone(mouseX, mouseY, bods);
 
-    updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods);
+      if (inBrain) {
+        targetX = bs.cx; targetY = bs.cy; posLp = 0.055;
+        targetHalfW = (bs.x2 - bs.x1) / 2; targetHalfH = (bs.y2 - bs.y1) / 2;
+      } else if (inSpine) {
+        targetX = ss.cx; targetY = ss.cy; posLp = 0.055;
+        targetHalfW = (ss.x2 - ss.x1) / 2; targetHalfH = (ss.y2 - ss.y1) / 2;
+      } else {
+        targetHalfW = targetHalfH = 100;
+      }
+
+      updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods);
+
+      // Reveal hero-desc the first time the cursor scans over the reveal line
+      if (!descRevealed) {
+        const rl = revealLine.getBoundingClientRect();
+        if (smoothX >= rl.left && smoothX <= rl.right && smoothY >= rl.top && smoothY <= rl.bottom) {
+          descRevealed = true;
+          heroDescEl.classList.add('visible');
+        }
+      }
+    }
   }
 
-  // Lerp cursor size — keeps clip-path perfectly in sync with the visual cursor
   const sizeLp = 0.09;
   halfW += (targetHalfW - halfW) * sizeLp;
   halfH += (targetHalfH - halfH) * sizeLp;
   cursor.style.width  = (halfW * 2) + 'px';
   cursor.style.height = (halfH * 2) + 'px';
 
-  // Lerp cursor position
   smoothX += (targetX - smoothX) * posLp;
   smoothY += (targetY - smoothY) * posLp;
-
   cursor.style.transform = `translate(${smoothX - halfW}px, ${smoothY - halfH}px)`;
 
   if (inside) {
     const rect = hero.getBoundingClientRect();
     const cx = smoothX - rect.left, cy = smoothY - rect.top;
-    const W  = rect.width,          H  = rect.height;
-
+    const W = rect.width, H = rect.height;
     clipPath.setAttribute('d',
       `M0,0 H${W} V${H} H0 Z ` +
       `M${Math.max(0, cx - halfW)},${Math.max(0, cy - halfH)} ` +
       `V${Math.min(H, cy + halfH)} H${Math.min(W, cx + halfW)} ` +
       `V${Math.max(0, cy - halfH)} Z`
     );
-
     coords.textContent = `${Math.round(cx)}, ${Math.round(cy)}`;
   }
 
