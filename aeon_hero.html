@@ -161,8 +161,8 @@ html, body {
 .zone-image {
   position: absolute;
   z-index: 8;
-  max-height: 40vh;
-  max-width: 22vw;
+  max-height: 20vh;
+  max-width: 11vw;
   width: auto;
   object-fit: contain;
   opacity: 0;
@@ -319,7 +319,7 @@ html, body {
   z-index: 1000;
   opacity: 0;
   transition: opacity 0.12s;
-  /* positioned by JS */
+  /* width/height animated via JS lerp to stay in sync with clip-path */
 }
 
 .cur-border {
@@ -569,35 +569,33 @@ const imgBrain   = document.getElementById('zoneBrain');
 const imgSpine   = document.getElementById('zoneSpine');
 const imgBody    = document.getElementById('zoneBody');
 
-const HALF = 100;
-
 let mouseX = 0, mouseY = 0;
 let smoothX = -9999, smoothY = -9999;
 let inside = false;
-let activeZoneName = null;
 
-// ── SVG zone definitions (in areas.svg viewBox space: 5504 × 3072) ──
-const SVG_W  = 5504, SVG_H = 3072;
+// Cursor half-size — lerped smoothly so clip-path stays in sync with visual
+let halfW = 100, halfH = 100;
+let targetHalfW = 100, targetHalfH = 100;
+
+// Zone image visibility state — only toggle class when it actually changes
+let prevInBrain = false, prevInSpine = false, prevInBody = false;
+
+// Zone definitions (areas.svg viewBox: 5504 × 3072)
+const SVG_W   = 5504, SVG_H = 3072;
 const BRAIN_Z = { x: 3372.96, y: 634.89,  w: 931.33,  h: 931.33  };
 const SPINE_Z = { x: 3571.24, y: 1646.33, w: 799.14,  h: 1393.99 };
 const BODY_Z  = { x: 2997.13, y: 377.21,  w: 1690.10, h: 2694.79 };
 
-// Maps SVG zone coords to screen-space given object-fit:cover / object-position:right center
+// Convert SVG coords → screen coords (object-fit:cover / object-position:right center)
 function getImgTransform() {
-  const r = hero.getBoundingClientRect();
+  const r     = hero.getBoundingClientRect();
   const scale = Math.max(r.width / SVG_W, r.height / SVG_H);
-  return {
-    scale,
-    ox: r.width  - SVG_W * scale,        // right-aligned
-    oy: (r.height - SVG_H * scale) / 2   // vertically centred
-  };
+  return { scale, ox: r.width - SVG_W * scale, oy: (r.height - SVG_H * scale) / 2 };
 }
 
 function zoneScreen(z, t) {
-  const x1 = t.ox + z.x * t.scale;
-  const y1 = t.oy + z.y * t.scale;
-  const x2 = t.ox + (z.x + z.w) * t.scale;
-  const y2 = t.oy + (z.y + z.h) * t.scale;
+  const x1 = t.ox + z.x * t.scale,           y1 = t.oy + z.y * t.scale;
+  const x2 = t.ox + (z.x + z.w) * t.scale,   y2 = t.oy + (z.y + z.h) * t.scale;
   return { x1, y1, x2, y2, cx: (x1 + x2) / 2, cy: (y1 + y2) / 2 };
 }
 
@@ -605,106 +603,112 @@ function inZone(px, py, z) {
   return px >= z.x1 && px <= z.x2 && py >= z.y1 && py <= z.y2;
 }
 
-function updateZoneImages(name, bs, ss, bods) {
-  // Always keep position current for the active image (handles resize)
-  if (name === 'brain') {
-    imgBrain.style.left = (bs.x2 + 20) + 'px';
-    imgBrain.style.top  = bs.cy + 'px';
-  } else if (name === 'spine') {
-    imgSpine.style.left = (ss.x2 + 20) + 'px';
-    imgSpine.style.top  = ss.cy + 'px';
-  } else if (name === 'body') {
-    imgBody.style.left = (bods.x2 + 20) + 'px';
-    imgBody.style.top  = bods.cy + 'px';
+function updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods) {
+  // Update positions every tick so they stay correct on resize
+  if (inBrain) {
+    imgBrain.style.left      = (bs.x2 + 20) + 'px';
+    imgBrain.style.top       = bs.cy + 'px';
+    imgBrain.style.transform = 'translateY(-50%)';
+  }
+  if (inSpine) {
+    imgSpine.style.left      = (ss.x2 + 20) + 'px';
+    imgSpine.style.top       = ss.cy + 'px';
+    imgSpine.style.transform = 'translateY(-50%)';
+  }
+  if (inBody) {
+    // Bloodmarker sits to the LEFT of the body zone
+    imgBody.style.left      = (bods.x1 - 20) + 'px';
+    imgBody.style.top       = bods.cy + 'px';
+    imgBody.style.transform = 'translate(-100%, -50%)';
   }
 
-  if (name === activeZoneName) return;
-  activeZoneName = name;
-
-  imgBrain.classList.toggle('visible', name === 'brain');
-  imgSpine.classList.toggle('visible', name === 'spine');
-  imgBody.classList.toggle('visible',  name === 'body');
+  // Only add/remove class when state changes to avoid restarting CSS transitions
+  if (inBrain !== prevInBrain) { imgBrain.classList.toggle('visible', inBrain); prevInBrain = inBrain; }
+  if (inSpine !== prevInSpine) { imgSpine.classList.toggle('visible', inSpine); prevInSpine = inSpine; }
+  if (inBody  !== prevInBody)  { imgBody.classList.toggle('visible',  inBody);  prevInBody  = inBody;  }
 }
 
 fgLayer.style.clipPath = 'url(#heroClip)';
 
 function alignRevealText() {
-  const line1Rect = line1El.getBoundingClientRect();
-  const heroRect  = hero.getBoundingClientRect();
-  const lineH     = line1Rect.height;
-  const line1Top  = line1Rect.top - heroRect.top;
-  revealLine.style.top       = (line1Top + lineH * 1.05) + 'px';
+  const l = line1El.getBoundingClientRect(), h = hero.getBoundingClientRect();
+  revealLine.style.top       = (l.top - h.top + l.height * 1.05) + 'px';
   revealLine.style.transform = 'none';
 }
-
 window.addEventListener('load',   alignRevealText);
 window.addEventListener('resize', alignRevealText);
 
-document.addEventListener('mousemove', e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
+document.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
 
-hero.addEventListener('mouseenter', () => {
-  inside = true;
-  cursor.style.opacity = '1';
-});
+hero.addEventListener('mouseenter', () => { inside = true;  cursor.style.opacity = '1'; });
 
 hero.addEventListener('mouseleave', () => {
   inside = false;
   cursor.style.opacity = '0';
-  activeZoneName = null;
+  // Snap cursor back to default size instantly on leave
+  halfW = halfH = targetHalfW = targetHalfH = 100;
+  cursor.style.width = '200px'; cursor.style.height = '200px';
+  prevInBrain = prevInSpine = prevInBody = false;
   imgBrain.classList.remove('visible');
   imgSpine.classList.remove('visible');
   imgBody.classList.remove('visible');
-  clipPath.setAttribute('d', `M0,0 H10000 V10000 H0 Z`);
+  clipPath.setAttribute('d', 'M0,0 H10000 V10000 H0 Z');
 });
 
 function tick() {
-  const t     = getImgTransform();
-  const bs    = zoneScreen(BRAIN_Z, t);
-  const ss    = zoneScreen(SPINE_Z, t);
-  const bods  = zoneScreen(BODY_Z,  t);
+  const t    = getImgTransform();
+  const bs   = zoneScreen(BRAIN_Z, t);
+  const ss   = zoneScreen(SPINE_Z, t);
+  const bods = zoneScreen(BODY_Z,  t);
 
-  let targetX = mouseX, targetY = mouseY, lp = 0.13;
-  let zoneName = null;
+  let targetX = mouseX, targetY = mouseY;
+  let posLp = 0.10;   // default: smooth free-follow
 
   if (inside) {
-    if (inZone(mouseX, mouseY, bs)) {
-      zoneName = 'brain';
-      targetX = bs.cx;
-      targetY = bs.cy;
-      lp = 0.11;
-    } else if (inZone(mouseX, mouseY, ss)) {
-      zoneName = 'spine';
-      targetX = ss.cx;
-      targetY = ss.cy;
-      lp = 0.11;
-    } else if (inZone(mouseX, mouseY, bods)) {
-      zoneName = 'body';
+    const inBrain = inZone(mouseX, mouseY, bs);
+    const inSpine = inZone(mouseX, mouseY, ss);
+    const inBody  = inZone(mouseX, mouseY, bods);
+
+    if (inBrain) {
+      targetX = bs.cx; targetY = bs.cy;
+      posLp   = 0.055;  // gentle pull — no whiplash
+      targetHalfW = (bs.x2 - bs.x1) / 2;
+      targetHalfH = (bs.y2 - bs.y1) / 2;
+    } else if (inSpine) {
+      targetX = ss.cx; targetY = ss.cy;
+      posLp   = 0.055;
+      targetHalfW = (ss.x2 - ss.x1) / 2;
+      targetHalfH = (ss.y2 - ss.y1) / 2;
+    } else {
+      targetHalfW = targetHalfH = 100;
     }
-    updateZoneImages(zoneName, bs, ss, bods);
+
+    updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods);
   }
 
-  smoothX += (targetX - smoothX) * lp;
-  smoothY += (targetY - smoothY) * lp;
+  // Lerp cursor size — keeps clip-path perfectly in sync with the visual cursor
+  const sizeLp = 0.09;
+  halfW += (targetHalfW - halfW) * sizeLp;
+  halfH += (targetHalfH - halfH) * sizeLp;
+  cursor.style.width  = (halfW * 2) + 'px';
+  cursor.style.height = (halfH * 2) + 'px';
 
-  cursor.style.transform = `translate(${smoothX - HALF}px, ${smoothY - HALF}px)`;
+  // Lerp cursor position
+  smoothX += (targetX - smoothX) * posLp;
+  smoothY += (targetY - smoothY) * posLp;
+
+  cursor.style.transform = `translate(${smoothX - halfW}px, ${smoothY - halfH}px)`;
 
   if (inside) {
     const rect = hero.getBoundingClientRect();
-    const cx = smoothX - rect.left;
-    const cy = smoothY - rect.top;
-    const W  = rect.width;
-    const H  = rect.height;
-
-    const x1 = Math.max(0, cx - HALF);
-    const y1 = Math.max(0, cy - HALF);
-    const x2 = Math.min(W, cx + HALF);
-    const y2 = Math.min(H, cy + HALF);
+    const cx = smoothX - rect.left, cy = smoothY - rect.top;
+    const W  = rect.width,          H  = rect.height;
 
     clipPath.setAttribute('d',
-      `M0,0 H${W} V${H} H0 Z M${x1},${y1} V${y2} H${x2} V${y1} Z`
+      `M0,0 H${W} V${H} H0 Z ` +
+      `M${Math.max(0, cx - halfW)},${Math.max(0, cy - halfH)} ` +
+      `V${Math.min(H, cy + halfH)} H${Math.min(W, cx + halfW)} ` +
+      `V${Math.max(0, cy - halfH)} Z`
     );
 
     coords.textContent = `${Math.round(cx)}, ${Math.round(cy)}`;
