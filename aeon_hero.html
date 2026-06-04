@@ -100,7 +100,7 @@ html, body {
   animation: fadeIn 0.6s 0.1s ease forwards;
 }
 
-.nav-logo { color: var(--cream); display: flex; align-items: center; text-decoration: none; }
+.nav-logo { color: var(--orange); display: flex; align-items: center; text-decoration: none; }
 .nav-logo svg { height: 26px; width: auto; }
 
 .nav-links {
@@ -108,12 +108,12 @@ html, body {
   list-style: none;
 }
 .nav-links a {
-  color: rgba(253,249,234,0.75);
+  color: var(--dark-cream);
   text-decoration: none;
   font-family: 'DM Mono', monospace;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 300;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.005em;
   transition: color 0.2s;
 }
 .nav-links a:hover { color: var(--cream); }
@@ -121,22 +121,24 @@ html, body {
 .nav-actions { display: flex; align-items: center; gap: 12px; }
 
 .btn-lang {
+  display: flex; align-items: center; gap: 6px;
   padding: 7px 14px;
-  border: 1px solid rgba(253,249,234,0.25);
+  border: 1px solid rgba(200,188,154,0.55);
   border-radius: 100px;
   background: transparent;
-  color: var(--cream);
+  color: var(--dark-cream);
   font-family: 'DM Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.06em;
   cursor: none;
 }
 .btn-contact {
-  padding: 9px 18px;
-  border: 1px solid rgba(253,249,234,0.4);
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid var(--cream);
   border-radius: 100px;
-  background: transparent;
-  color: var(--cream);
+  background: var(--cream);
+  color: var(--black);
   font-family: 'DM Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -154,6 +156,21 @@ html, body {
   letter-spacing: 0.04em;
   cursor: none;
 }
+
+/* ── ZONE REVEAL IMAGES ── */
+.zone-image {
+  position: absolute;
+  z-index: 8;
+  max-height: 40vh;
+  max-width: 22vw;
+  width: auto;
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.55s ease;
+  transform: translateY(-50%);
+}
+.zone-image.visible { opacity: 0.92; }
 
 /* ── LAYER 4: Hero text content ── */
 .hero-content {
@@ -452,8 +469,23 @@ html, body {
       <li><a href="#">Login</a></li>
     </ul>
     <div class="nav-actions">
-      <button class="btn-lang">EN</button>
-      <button class="btn-contact">Contact us</button>
+      <button class="btn-lang">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M8.49836 14C10.0367 14 11.2838 11.0899 11.2838 7.5C11.2838 3.91015 10.0367 1 8.49836 1C6.95999 1 5.71289 3.91015 5.71289 7.5C5.71289 11.0899 6.95999 14 8.49836 14Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 7.5H15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M8.5 14C12.0899 14 15 11.0899 15 7.5C15 3.91015 12.0899 1 8.5 1C4.91015 1 2 3.91015 2 7.5C2 11.0899 4.91015 14 8.5 14Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        EN
+      </button>
+      <button class="btn-contact">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M13.7606 6.25003L12.6787 4.37503C12.4467 3.97322 12.0646 3.68001 11.6164 3.55988C11.1682 3.43975 10.6907 3.50252 10.2887 3.73441C10.0646 3.86391 9.87241 4.04203 9.72625 4.25566L8.6375 2.37503C8.48383 2.10926 8.26295 1.88858 7.99703 1.73516C7.7311 1.58174 7.4295 1.50098 7.1225 1.50098C6.81549 1.50098 6.51389 1.58174 6.24797 1.73516C5.98205 1.88858 5.76116 2.10926 5.6075 2.37503C5.28792 2.1234 4.89066 1.99094 4.48401 2.00044C4.07737 2.00994 3.68673 2.16079 3.37924 2.42708C3.07176 2.69336 2.86664 3.05844 2.79914 3.45956C2.73164 3.86068 2.80598 4.27278 3.00937 4.62503L3.10875 4.79753C2.85015 4.81759 2.59938 4.89556 2.375 5.02566C1.97312 5.25782 1.67992 5.6401 1.5599 6.08843C1.43988 6.53675 1.50286 7.0144 1.735 7.41628L4.235 11.7488C4.59468 12.3754 5.07499 12.9245 5.64817 13.3643C6.22136 13.8042 6.87604 14.126 7.57437 14.3113C8.04163 14.4361 8.52323 14.4991 9.00687 14.4988C9.97153 14.4971 10.9188 14.2418 11.7536 13.7584C12.5884 13.275 13.2814 12.5806 13.763 11.7447C14.2446 10.9089 14.4979 9.9611 14.4975 8.99644C14.4971 8.03178 14.243 7.0842 13.7606 6.24878V6.25003Z" fill="currentColor"/>
+        </svg>
+        Contact us
+        <svg width="12" height="12" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M16.25 7.5L10 13.75L3.75 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button class="btn-book">Book a Scan</button>
     </div>
   </nav>
@@ -503,6 +535,11 @@ html, body {
     </div>
   </div>
 
+  <!-- Zone reveal images -->
+  <img id="zoneBrain" class="zone-image" src="Brain.png"       alt="Brain MRI">
+  <img id="zoneSpine" class="zone-image" src="Spine.png"       alt="Spine MRI">
+  <img id="zoneBody"  class="zone-image" src="Bloodmarker.png" alt="Blood markers">
+
   <!-- MRI cursor element -->
   <div id="mriCursor">
     <div class="cur-border"></div>
@@ -528,31 +565,81 @@ const clipPath   = document.getElementById('heroClipPath');
 const revealLine = document.getElementById('revealLine');
 const line1El    = document.getElementById('line1');
 const coords     = document.getElementById('curCoords');
+const imgBrain   = document.getElementById('zoneBrain');
+const imgSpine   = document.getElementById('zoneSpine');
+const imgBody    = document.getElementById('zoneBody');
 
-const HALF = 100; // half-size of the reveal square (200px total)
+const HALF = 100;
 
 let mouseX = 0, mouseY = 0;
 let smoothX = -9999, smoothY = -9999;
 let inside = false;
+let activeZoneName = null;
 
-// On load, apply clip-path reference and align reveal text
+// ── SVG zone definitions (in areas.svg viewBox space: 5504 × 3072) ──
+const SVG_W  = 5504, SVG_H = 3072;
+const BRAIN_Z = { x: 3372.96, y: 634.89,  w: 931.33,  h: 931.33  };
+const SPINE_Z = { x: 3571.24, y: 1646.33, w: 799.14,  h: 1393.99 };
+const BODY_Z  = { x: 2997.13, y: 377.21,  w: 1690.10, h: 2694.79 };
+
+// Maps SVG zone coords to screen-space given object-fit:cover / object-position:right center
+function getImgTransform() {
+  const r = hero.getBoundingClientRect();
+  const scale = Math.max(r.width / SVG_W, r.height / SVG_H);
+  return {
+    scale,
+    ox: r.width  - SVG_W * scale,        // right-aligned
+    oy: (r.height - SVG_H * scale) / 2   // vertically centred
+  };
+}
+
+function zoneScreen(z, t) {
+  const x1 = t.ox + z.x * t.scale;
+  const y1 = t.oy + z.y * t.scale;
+  const x2 = t.ox + (z.x + z.w) * t.scale;
+  const y2 = t.oy + (z.y + z.h) * t.scale;
+  return { x1, y1, x2, y2, cx: (x1 + x2) / 2, cy: (y1 + y2) / 2 };
+}
+
+function inZone(px, py, z) {
+  return px >= z.x1 && px <= z.x2 && py >= z.y1 && py <= z.y2;
+}
+
+function updateZoneImages(name, bs, ss, bods) {
+  // Always keep position current for the active image (handles resize)
+  if (name === 'brain') {
+    imgBrain.style.left = (bs.x2 + 20) + 'px';
+    imgBrain.style.top  = bs.cy + 'px';
+  } else if (name === 'spine') {
+    imgSpine.style.left = (ss.x2 + 20) + 'px';
+    imgSpine.style.top  = ss.cy + 'px';
+  } else if (name === 'body') {
+    imgBody.style.left = (bods.x2 + 20) + 'px';
+    imgBody.style.top  = bods.cy + 'px';
+  }
+
+  if (name === activeZoneName) return;
+  activeZoneName = name;
+
+  imgBrain.classList.toggle('visible', name === 'brain');
+  imgSpine.classList.toggle('visible', name === 'spine');
+  imgBody.classList.toggle('visible',  name === 'body');
+}
+
 fgLayer.style.clipPath = 'url(#heroClip)';
 
 function alignRevealText() {
-  const line1Rect  = line1El.getBoundingClientRect();
-  const heroRect   = hero.getBoundingClientRect();
-  const lineH      = line1Rect.height;
-  // Position reveal line directly below line1
-  // hero-content is centred at 50% via CSS, so calculate absolute top
-  const line1Top   = line1Rect.top - heroRect.top;
-  revealLine.style.top  = (line1Top + lineH * 1.05) + 'px';
+  const line1Rect = line1El.getBoundingClientRect();
+  const heroRect  = hero.getBoundingClientRect();
+  const lineH     = line1Rect.height;
+  const line1Top  = line1Rect.top - heroRect.top;
+  revealLine.style.top       = (line1Top + lineH * 1.05) + 'px';
   revealLine.style.transform = 'none';
 }
 
-window.addEventListener('load', alignRevealText);
+window.addEventListener('load',   alignRevealText);
 window.addEventListener('resize', alignRevealText);
 
-// Track mouse globally so cursor follows even at edges
 document.addEventListener('mousemove', e => {
   mouseX = e.clientX;
   mouseY = e.clientY;
@@ -562,49 +649,68 @@ hero.addEventListener('mouseenter', () => {
   inside = true;
   cursor.style.opacity = '1';
 });
+
 hero.addEventListener('mouseleave', () => {
   inside = false;
   cursor.style.opacity = '0';
-  // Full opaque foreground when not hovering
-  clipPath.setAttribute('d',
-    `M0,0 H10000 V10000 H0 Z`
-  );
+  activeZoneName = null;
+  imgBrain.classList.remove('visible');
+  imgSpine.classList.remove('visible');
+  imgBody.classList.remove('visible');
+  clipPath.setAttribute('d', `M0,0 H10000 V10000 H0 Z`);
 });
 
-let raf;
 function tick() {
-  // Smooth lerp
-  const lp = 0.13;
-  smoothX += (mouseX - smoothX) * lp;
-  smoothY += (mouseY - smoothY) * lp;
+  const t     = getImgTransform();
+  const bs    = zoneScreen(BRAIN_Z, t);
+  const ss    = zoneScreen(SPINE_Z, t);
+  const bods  = zoneScreen(BODY_Z,  t);
 
-  // Position cursor element
+  let targetX = mouseX, targetY = mouseY, lp = 0.13;
+  let zoneName = null;
+
+  if (inside) {
+    if (inZone(mouseX, mouseY, bs)) {
+      zoneName = 'brain';
+      targetX = bs.cx;
+      targetY = bs.cy;
+      lp = 0.11;
+    } else if (inZone(mouseX, mouseY, ss)) {
+      zoneName = 'spine';
+      targetX = ss.cx;
+      targetY = ss.cy;
+      lp = 0.11;
+    } else if (inZone(mouseX, mouseY, bods)) {
+      zoneName = 'body';
+    }
+    updateZoneImages(zoneName, bs, ss, bods);
+  }
+
+  smoothX += (targetX - smoothX) * lp;
+  smoothY += (targetY - smoothY) * lp;
+
   cursor.style.transform = `translate(${smoothX - HALF}px, ${smoothY - HALF}px)`;
 
   if (inside) {
     const rect = hero.getBoundingClientRect();
-    const cx   = smoothX - rect.left;
-    const cy   = smoothY - rect.top;
-    const W    = rect.width;
-    const H    = rect.height;
+    const cx = smoothX - rect.left;
+    const cy = smoothY - rect.top;
+    const W  = rect.width;
+    const H  = rect.height;
 
     const x1 = Math.max(0, cx - HALF);
     const y1 = Math.max(0, cy - HALF);
     const x2 = Math.min(W, cx + HALF);
     const y2 = Math.min(H, cy + HALF);
 
-    // SVG path: outer rect (CW) + inner hole rect (CCW) with evenodd fill-rule
-    // CW outer:  M0,0 H W V H H0 Z
-    // CCW inner: M x1,y1 V y2 H x2 V y1 Z  (go down first = CCW in screen coords)
     clipPath.setAttribute('d',
       `M0,0 H${W} V${H} H0 Z M${x1},${y1} V${y2} H${x2} V${y1} Z`
     );
 
-    // Debug coords in cursor label
     coords.textContent = `${Math.round(cx)}, ${Math.round(cy)}`;
   }
 
-  raf = requestAnimationFrame(tick);
+  requestAnimationFrame(tick);
 }
 tick();
 </script>
