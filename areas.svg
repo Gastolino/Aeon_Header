@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="MAIN" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5504 3072">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: none;
+      }
+
+      .cls-2 {
+        stroke: #000;
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <rect id="BRAIN" class="cls-2" x="3372.96" y="634.89" width="931.33" height="931.33"/>
+  <rect id="SPINE" class="cls-2" x="3571.24" y="1646.33" width="799.14" height="1393.99"/>
+  <rect id="MAIN_AREA" class="cls-1" width="5504" height="3072"/>
+  <rect id="BODy" class="cls-1" x="2997.13" y="377.21" width="1690.1" height="2694.79"/>
+</svg>
