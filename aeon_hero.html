@@ -270,12 +270,12 @@ html, body {
 }
 .star {
   font-size: 12px;
-  color: var(--dark-cream);
+  color: var(--black);
 }
 .rating-label {
   font-family: 'DM Mono', monospace;
   font-size: 11px;
-  color: var(--dark-cream);
+  color: var(--black);
   letter-spacing: 0.04em;
 }
 
@@ -613,7 +613,7 @@ document.fonts.ready.then(() => {
 });
 window.addEventListener('resize', alignRevealText);
 
-// Nav: hide MRI cursor, let OS cursor show
+/// Nav: hide MRI cursor, let OS cursor show
 nav.addEventListener('mouseenter', () => { isOverNav = true;  cursor.style.opacity = '0'; });
 nav.addEventListener('mouseleave', () => { isOverNav = false; if (inside) cursor.style.opacity = '1'; });
 
@@ -639,8 +639,8 @@ function tick() {
 
   if (inside) {
     if (isOverNav) {
-      // MRI cursor is hidden; OS cursor shows
-      targetHalfW = targetHalfH = 100;
+      // Scan cursor shrinks to nothing and disappears
+      targetHalfW = targetHalfH = 0;
       updateZoneImages(false, false, false, bs, ss, bods);
     } else {
       const inBrain = inZone(mouseX, mouseY, bs);
