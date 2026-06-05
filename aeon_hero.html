@@ -325,7 +325,7 @@ html, body {
   pointer-events: none;
   z-index: 1000;
   opacity: 0;
-  transition: opacity 0.12s;
+  transition: opacity 0.06s;
   /* width/height animated via JS lerp to stay in sync with clip-path */
 }
 
@@ -594,6 +594,7 @@ function updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods) {
 }
 
 fgLayer.style.clipPath = 'url(#heroClip)';
+clipPath.setAttribute('d', 'M0,0 H10000 V10000 H0 Z');  // start fully revealed
 
 function alignRevealText() {
   const l = line1El.getBoundingClientRect(), h = hero.getBoundingClientRect();
@@ -670,7 +671,7 @@ function tick() {
     }
   }
 
-  const sizeLp = 0.09;
+  const sizeLp = isOverNav ? 0.18 : 0.09;  // 2x faster shrink over nav
   halfW += (targetHalfW - halfW) * sizeLp;
   halfH += (targetHalfH - halfH) * sizeLp;
   cursor.style.width  = (halfW * 2) + 'px';
