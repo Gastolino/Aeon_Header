@@ -625,15 +625,19 @@ function buildClip(rect, cx, cy, hw, hh) {
   const W = rect.width, H = rect.height;
   const b = revBoxLocal(rect);
   let d = `M0,0 H${W} V${H} H0 Z `;
-  // SVG always exposes the full text band; the canvas mask controls the reveal
+  // Permanent band hole — canvas handles the visual mask
   d += rectHole(b.x, b.y, b.x + b.w, b.y + b.h, W, H);
-  // Live X-ray hole split above/below the band to avoid even-odd cancellation
-  const ht = cy - hh, hb = cy + hh;
-  if (hb > b.y && ht < b.y + b.h) {
-    if (ht < b.y)        d += rectHole(cx - hw, ht,      cx + hw, b.y,      W, H);
-    if (hb > b.y + b.h) d += rectHole(cx - hw, b.y+b.h, cx + hw, hb,       W, H);
+  const ht = cy - hh, hb = cy + hh, hx1 = cx - hw, hx2 = cx + hw;
+  if (hb > b.y && ht < b.y + b.h && hx1 < b.x + b.w && hx2 > b.x) {
+    // Cursor overlaps the band — split into 4 non-overlapping pieces so the
+    // live hole never overlaps the band hole (even-odd would re-cover it)
+    const oy1 = Math.max(ht, b.y), oy2 = Math.min(hb, b.y + b.h);
+    d += rectHole(hx1,      ht,  hx2,      b.y,      W, H); // above band
+    d += rectHole(hx1,      b.y + b.h, hx2, hb,      W, H); // below band
+    d += rectHole(hx1,      oy1, b.x,      oy2,      W, H); // left of band
+    d += rectHole(b.x+b.w,  oy1, hx2,      oy2,      W, H); // right of band
   } else {
-    d += rectHole(cx - hw, ht, cx + hw, hb, W, H);
+    d += rectHole(hx1, ht, hx2, hb, W, H);
   }
   clipPath.setAttribute('d', d);
 }
