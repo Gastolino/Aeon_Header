@@ -562,6 +562,7 @@ const nav        = document.querySelector('.nav');
 let mouseX = 0, mouseY = 0;
 let smoothX = -9999, smoothY = -9999;
 let inside = false, isOverNav = false, descRevealed = false;
+let scratchIntervals = [];   // merged [x1,x2] ranges (hero-local px) permanently scratched open
 
 let halfW = 100, halfH = 100, targetHalfW = 100, targetHalfH = 100;
 let prevInBrain = false, prevInSpine = false, prevInBody = false;
@@ -594,6 +595,49 @@ function updateZoneImages(inBrain, inSpine, inBody, bs, ss, bods) {
 fgLayer.style.clipPath = 'url(#heroClip)';
 clipPath.setAttribute('d', 'M0,0 H10000 V10000 H0 Z');  // start fully revealed
 
+// ── Scratchcard reveal over the "that leaves nothing unseen" line ──
+function revBoxLocal(rect) {
+  const r = revealLine.getBoundingClientRect();
+  const padX = 4, padY = 6;
+  return { x: r.left - rect.left - padX, y: r.top - rect.top - padY,
+           w: r.width + padX * 2, h: r.height + padY * 2 };
+}
+function addScratch(x1, x2) {
+  if (x2 <= x1) return;
+  scratchIntervals.push([x1, x2]);
+  scratchIntervals.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const iv of scratchIntervals) {
+    const last = merged[merged.length - 1];
+    if (last && iv[0] <= last[1] + 0.5) last[1] = Math.max(last[1], iv[1]);
+    else merged.push(iv.slice());
+  }
+  scratchIntervals = merged;
+}
+function rectHole(x1, y1, x2, y2, W, H) {
+  x1 = Math.max(0, x1); y1 = Math.max(0, y1);
+  x2 = Math.min(W, x2); y2 = Math.min(H, y2);
+  if (x2 <= x1 || y2 <= y1) return '';
+  return `M${x1},${y1} V${y2} H${x2} V${y1} Z `;
+}
+function buildClip(rect, cx, cy, hw, hh) {
+  const W = rect.width, H = rect.height;
+  let d = `M0,0 H${W} V${H} H0 Z `;
+  const b = revBoxLocal(rect);
+  const bandTop = b.y, bandBot = b.y + b.h;
+  // permanent scratch reveals (full band height, merged so they never overlap)
+  for (const [ix1, ix2] of scratchIntervals) d += rectHole(ix1, bandTop, ix2, bandBot, W, H);
+  // live X-ray hole — split around the band so it never overlaps the scratch rects
+  const ht = cy - hh, hb = cy + hh, hx1 = cx - hw, hx2 = cx + hw;
+  if (hb > bandTop && ht < bandBot) {
+    if (ht < bandTop) d += rectHole(hx1, ht, hx2, bandTop, W, H);
+    if (hb > bandBot) d += rectHole(hx1, bandBot, hx2, hb, W, H);
+  } else {
+    d += rectHole(hx1, ht, hx2, hb, W, H);
+  }
+  clipPath.setAttribute('d', d);
+}
+
 function alignRevealText() {
   const l = line1El.getBoundingClientRect(), h = hero.getBoundingClientRect();
   const revealTop = l.top - h.top + l.height * 1.05;
@@ -610,7 +654,7 @@ document.fonts.ready.then(() => {
 });
 window.addEventListener('resize', alignRevealText);
 
-/// Nav: hide MRI cursor, let OS cursor show
+// Nav: hide MRI cursor, let OS cursor show
 nav.addEventListener('mouseenter', () => { isOverNav = true;  cursor.style.opacity = '0'; });
 nav.addEventListener('mouseleave', () => { isOverNav = false; if (inside) cursor.style.opacity = '1'; });
 
@@ -625,7 +669,7 @@ hero.addEventListener('mouseleave', () => {
   imgBrain.classList.remove('visible');
   imgSpine.classList.remove('visible');
   imgBody.classList.remove('visible');
-  clipPath.setAttribute('d', 'M0,0 H10000 V10000 H0 Z');
+  buildClip(hero.getBoundingClientRect(), -9999, -9999, 0, 0);  // keep scratches, drop live hole
 });
 
 function tick() {
@@ -680,13 +724,12 @@ function tick() {
   if (inside) {
     const rect = hero.getBoundingClientRect();
     const cx = smoothX - rect.left, cy = smoothY - rect.top;
-    const W = rect.width, H = rect.height;
-    clipPath.setAttribute('d',
-      `M0,0 H${W} V${H} H0 Z ` +
-      `M${Math.max(0, cx - halfW)},${Math.max(0, cy - halfH)} ` +
-      `V${Math.min(H, cy + halfH)} H${Math.min(W, cx + halfW)} ` +
-      `V${Math.max(0, cy - halfH)} Z`
-    );
+    const b = revBoxLocal(rect);
+    // Scratch off the mask wherever the scan passes across the text band
+    if (!isOverNav && cy + halfH > b.y && cy - halfH < b.y + b.h) {
+      addScratch(Math.max(b.x, cx - halfW), Math.min(b.x + b.w, cx + halfW));
+    }
+    buildClip(rect, cx, cy, halfW, halfH);
     coords.textContent = `${Math.round(cx)}, ${Math.round(cy)}`;
   }
 
